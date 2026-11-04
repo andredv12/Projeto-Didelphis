@@ -20,7 +20,7 @@ textarea{width:100%;min-height:70px;margin:4px 0}input{width:100%}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between}.mut{color:var(--mut);font-size:13px}
 .tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--bd)}
 @media print{header,button,.noprint{display:none!important}}
-</style></head><body>
+</style><script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script></head><body>
 <header><b>🐾 Projeto Didelphis</b><nav id="nav"></nav></header><main id="app"></main>
 <script>
 const L=['Rascunho','Dúvidas p/ professor','Em correção','Aguardando assinatura','Assinado'];
@@ -69,7 +69,7 @@ function delC(){if(confirm('Excluir este caso e suas lâminas?')){db.slides=db.s
 function vLam(){const sl=slOf(v.cid),n=(sl.at(-1)?.num||0)+1;
  return `<div class=card><div class=row><b>Quem pediu a coloração?</b><select onchange="v.quem=this.value">${db.cfg.quem.map(q=>`<option ${v.quem==q?'selected':''}>${q}</option>`).join('')}</select></div>
  <div class=row style="margin-top:8px"><input id=sn type=number value=${n} style="width:80px"><input id=so list=ol placeholder="Órgão" style="flex:1"><datalist id=ol>${db.cfg.orgaos.map(o=>`<option>${o}</option>`).join('')}</datalist><button class=p onclick="addSl()">＋ Lâmina</button></div></div>
- ${sl.map(s=>`<div class=card><div class=row><b>Lâmina ${s.num} – ${esc(s.org)}</b><button onclick="delSl('${s.id}')">🗑</button></div>
+ ${sl.map(s=>`<div class=card><div class=row><b>Lâmina ${s.num} – ${esc(s.org||'órgão a definir')}</b><span><button onclick="edOrg('${s.id}')">✏ órgão</button> <button onclick="delSl('${s.id}')">🗑</button></span></div>
  <div>${db.cfg.cols.map(n=>`<button class="chip ${s.cols.some(r=>r.n==n)?'on':''}" onclick="togCol('${s.id}','${n}')">${n}</button>`).join('')}<button class=chip onclick="outra('${s.id}')">＋ outra</button></div>
  <div>${s.cols.map((r,i)=>`<span class="st s${r.st}" onclick="cyc('${s.id}',${i})" title="Clique para avançar">${esc(r.n)} · ${S[r.st]} · ${esc(r.q)} ↻</span>`).join('')}</div>
  <textarea placeholder="Descrição microscópica (vai para a Histopatologia do laudo)" onchange="setSl('${s.id}','desc',this.value)">${esc(s.desc)}</textarea></div>`).join('')||'<p class=mut>Cadastre as lâminas do caso.</p>'}`}
@@ -82,7 +82,7 @@ function outra(id){const n=prompt('Nome da coloração:');if(n){sl1(id).cols.pus
 function cyc(id,i){const r=sl1(id).cols[i];r.st=(r.st+1)%4;r.d=today();save();render()}
 const setSl=(id,k,x)=>{sl1(id)[k]=x;save()};
 /* ---------- LAUDO ---------- */
-function histo(c){return slOf(c.id).map(s=>`${s.num} (${s.org}${s.cols.length?'; HE + '+s.cols.map(r=>r.n).join(', '):''}): ${s.desc||'[descrever]'}`)}
+function histo(c){return slOf(c.id).map(s=>{const p=[s.org,s.cols.length?'HE + '+s.cols.map(r=>r.n).join(', '):''].filter(Boolean).join('; ');return `${s.num}${p?` (${p})`:''}: ${s.desc||'[descrever]'}`})}
 function vLaudo(){const c=C(),nd=db.duv.filter(d=>d.caso==c.id&&!d.ok).length;
  const ta=(k,l,h=90)=>`<label class=mut>${l}</label><textarea style="min-height:${h}px" onchange="setC('${k}',this.value)">${esc(c[k])}</textarea>`;
  return `<div class=card><div class=row><b>Status do laudo</b><select onchange="setC('st',+this.value);render()">${L.map((t,i)=>`<option value=${i} ${c.st==i?'selected':''}>${t}</option>`).join('')}</select></div>
@@ -91,7 +91,7 @@ function vLaudo(){const c=C(),nd=db.duv.filter(d=>d.caso==c.id&&!d.ok).length;
  <p>${EX.map(e=>`<label><input type=checkbox style="width:auto" ${(c.ex||[]).includes(e)?'checked':''} onchange="tgEx('${e}')"> ${e}</label>`).join(' &nbsp; ')}</p></div>
  <div class=card>${ta('hist','Histórico (fornecido pelo solicitante)',60)}${ta('macro','Achados macroscópicos (necropsia)',140)}
  <label class=mut>Histopatologia (montada automaticamente a partir das lâminas)</label>${histo(c).map(t=>`<p>${esc(t)}</p>`).join('')||'<p class=mut>Sem lâminas.</p>'}
- ${ta('morf','Diagnósticos morfológicos (um por linha)',90)}${ta('concl','Conclusão',80)}${ta('com','Comentários',80)}
+ ${ta('compl','Exames complementares (além das colorações pedidas)',60)}${ta('morf','Diagnósticos morfológicos (um por linha)',90)}${ta('concl','Conclusão',80)}${ta('com','Comentários',80)}
  <div class="row noprint"><button class=p onclick="baixar()">⬇ Baixar Word (.doc)</button><button onclick="print()">🖨 Imprimir / PDF</button></div></div>`}
 function tgEx(e){const c=C();c.ex=c.ex||[];const i=c.ex.indexOf(e);i<0?c.ex.push(e):c.ex.splice(i,1);save()}
 function baixar(){const c=C(),p=(t,x)=>`<p><b>${t}</b><br>${esc(x).replace(/\n/g,'<br>')}</p>`,ck=e=>`[${(c.ex||[]).includes(e)?'x':' '}] ${e}`;
@@ -108,7 +108,7 @@ function baixar(){const c=C(),p=(t,x)=>`<p><b>${t}</b><br>${esc(x).replace(/\n/g
  <tr><td colspan=2><b>Patologista responsável:</b> ${esc(c.pat)}</td></tr></table>
  <p><b>Exames realizados:</b> ${EX.map(ck).join(' ')}</p><p><b>Material enviado:</b> [x] Carcaça [ ] Material fixado</p>
  ${p('HISTÓRICO:',c.hist||'')}${p('ACHADOS MACROSCÓPICOS:',c.macro||'')}<p><b>HISTOPATOLOGIA:</b></p>${histo(c).map(t=>`<p>${esc(t)}</p>`).join('')}
- ${p('EXAMES COMPLEMENTARES:',slOf(c.id).flatMap(s=>s.cols.map(r=>`Lâmina ${s.num}: ${r.n}`)).join('\n'))}
+ ${p('EXAMES COMPLEMENTARES:',[c.compl||'',...slOf(c.id).flatMap(s=>s.cols.map(r=>`Lâmina ${s.num}: ${r.n}`))].filter(Boolean).join('\n'))}
  ${p('DIAGNÓSTICOS MORFOLÓGICOS:',c.morf||'')}${p('CONCLUSÃO:',c.concl||'')}${p('COMENTÁRIOS:',c.com||'')}<p><b>Pós-graduando(a) responsável:</b> ${esc(c.pos)}</p></body></html>`;
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff',h],{type:'application/msword'}));a.download=`Laudo_${c.reg.replace(/\W/g,'-')}.doc`;a.click()}
 /* ---------- DÚVIDAS ---------- */
@@ -130,6 +130,7 @@ function vFila(){const all=db.slides.flatMap(s=>{const c=db.cases.find(x=>x.id==
 function vDados(){return `<div class=card><h3>Backup</h3><p class=mut>Os dados ficam salvos neste navegador. Baixe um backup com frequência (e guarde no Drive).</p>
  <div class=row style="justify-content:flex-start"><button class=p onclick="exp()">⬇ Exportar backup (.json)</button><label>Restaurar: <input type=file accept=.json onchange="imp(this.files[0])" style="width:auto"></label></div></div>
  <div class=card><h3>Importar casos da planilha (.csv)</h3><p class=mut>No Sheets: Arquivo → Fazer download → CSV. Entram: Registro, Local, Nome científico, Data da Morte, Sexo, Idade. Casos já existentes são ignorados.</p><input type=file accept=.csv onchange="impCsv(this.files[0])"></div>
+ <div class=card><h3>Importar laudos Word (.docx)</h3><p class=mut>Selecione um ou vários laudos no seu modelo. O caso é localizado pelo registro (no laudo ou no nome do arquivo); se já existir, só os campos vazios são preenchidos. Arquivos .doc antigos precisam ser salvos como .docx.</p><input type=file accept=.docx multiple onchange="impDocx(this.files)"></div>
  <div class=card><h3>Listas pré-definidas</h3><div class=row style="justify-content:flex-start"><button onclick="lista('cols','Colorações')">Colorações</button><button onclick="lista('orgaos','Órgãos')">Órgãos</button><button onclick="lista('quem','Quem pede')">Quem pede</button></div></div>`}
 function lista(k,n){const t=prompt(n+' (separe por vírgula):',db.cfg[k].join(', '));if(t){db.cfg[k]=t.split(',').map(x=>x.trim()).filter(Boolean);save();render()}}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db)],{type:'application/json'}));a.download=`didelphis-backup-${today()}.json`;a.click()}
@@ -141,5 +142,29 @@ async function impCsv(f){if(!f)return;const r=csv(await f.text()),H=r[0].map(x=>
  db.cases.push({id:uid(),reg,proc:g(w,'Local'),esp:g(w,'Nome científico')||'Didelphis albiventris',nome:'Gambá',sexo:g(w,'Sexo'),idade:g(w,'Idade'),do:iso(g(w,'Data da Morte')),
  tipo:/^2[1-4]\//.test(reg)?'Retrospectivo':'Prospectivo',st:0,ex:['Necropsia','Histopatologia'],pat:'Professor Dr. Renato de Lima Santos - CRMV MG 4577',pos:'André Duarte Vieira – CRMV MG-34985'});n++});
  save();alert(n+' caso(s) importado(s). Confira as datas.');render()}
+function edOrg(id){const o=prompt('Órgão da lâmina:',sl1(id).org);if(o!==null){sl1(id).org=o.trim();save();render()}}
+const MP={prop:'Propriet[áa]rio',proc:'Proced[êe]ncia',nome:'Nome',esp:'Esp[ée]cie',peso:'Peso',idade:'Idade',sexo:'Sexo',morte:'Morte',do:'Data do [óo]bito',dn:'Data da necropsia',dr:'Data de recebimento',vet:'Veterin[áa]rio respons[áa]vel',pat:'Patologista respons[áa]vel',pos:'P[óo]s-gradua[a-z]*\\(a\\) respons[áa]vel'};
+const ALL=Object.values(MP).join('|');
+const pegar=(t,p)=>{const m=t.match(new RegExp('(?:'+p+')\\s*:\\s*([^\\n]*?)\\s*(?=(?:'+ALL+')\\s*:|\\n|$)','i'));return m?m[1].trim():''};
+const HD=/^[ \t]*(HIST[ÓO]RICO|ACHADOS MACROSC[ÓO]PICOS|HISTOPATOLOGIA|EXAMES COMPLEMENTARES|DIAGN[ÓO]STICOS MORFOL[ÓO]GICOS|CONCLUS[ÃA]O|COMENT[ÁA]RIOS)[ \t]*:?[ \t]*/gim;
+const sk=h=>{h=h.toUpperCase();return h.startsWith('HISTOP')?'histo':h.startsWith('HIST')?'hist':h.startsWith('ACH')?'macro':h.startsWith('EXAMES')?'compl':h.startsWith('DIAG')?'morf':h.startsWith('CONCL')?'concl':'com'};
+async function impDocx(fs){let nw=0,up=0,ls=0,er=[];const dg=x=>(x||'').replace(/\D/g,'');
+ for(const f of fs){try{
+  const t=(await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()})).value.replace(/\r/g,'');
+  const ms=[...t.matchAll(HD)],ident=t.slice(0,ms.length?ms[0].index:t.length),head=t.slice(0,Math.max(0,t.search(/IDENTIFICA/i)));
+  const m1=(head.match(/Z\s*\/\s*\d{2}(?:\s*\/\s*\d+)?/i)||[''])[0].replace(/\s/g,''),cand=[m1,f.name.replace(/\.docx$/i,'')].filter(x=>dg(x).length>=5);
+  let c=null;for(const x of cand){c=db.cases.find(k=>dg(k.reg).length>=5&&dg(x).includes(dg(k.reg)));if(c)break}
+  if(c)up++;else{c={id:uid(),reg:cand[0]||m1||f.name,esp:'Didelphis albiventris',tipo:'Retrospectivo',st:0,ex:[],mat:'Carcaça'};db.cases.unshift(c);nw++}
+  const set=(k,x)=>{if(x&&!c[k])c[k]=x};
+  for(const k in MP){let x=pegar(ident,MP[k]);if(['do','dn','dr'].includes(k))x=iso(x);set(k,x)}
+  c.ex=c.ex||[];for(const m of ident.matchAll(/\[\s*[xX]\s*\]\s*(Necropsia|Histopatologia|Bacteriologia|Toxicol[óo]gico|Virol[óo]gico|Parasitol[óo]gico|Outros)/gi)){const e=EX.find(z=>z.toLowerCase().slice(0,5)==m[1].toLowerCase().slice(0,5));if(e&&!c.ex.includes(e))c.ex.push(e)}
+  const sec={};ms.forEach((m,i)=>{let x=t.slice(m.index+m[0].length,i+1<ms.length?ms[i+1].index:t.length);if(i+1==ms.length)x=x.split(/\n\s*P[óo]s-gradua/i)[0];x=x.replace(/\n{2,}/g,'\n').trim();if(sk(m[1])=='hist')x=x.replace(/^Fornecido pelo solicitante\s*:?\s*/i,'');sec[sk(m[1])]=x});
+  for(const k of ['hist','macro','compl','morf','concl','com'])set(k,sec[k]);
+  let cur=null;const nl=[];(sec.histo||'').split('\n').forEach(l=>{const m=l.match(/^\s*(?:L[âa]mina\s*)?(\d+)\s*(?:[:\-–.)])\s*(.*)$/i);if(m){cur={num:+m[1],desc:m[2]};nl.push(cur)}else if(cur&&l.trim())cur.desc+='\n'+l.trim()});
+  if(!nl.length&&sec.histo)nl.push({num:1,desc:sec.histo});
+  nl.forEach(n=>{const e=db.slides.find(s=>s.caso==c.id&&s.num==n.num);if(e){if(!e.desc){e.desc=n.desc;ls++}}else{db.slides.push({id:uid(),caso:c.id,num:n.num,org:'',cols:[],desc:n.desc});ls++}});
+ }catch(e){er.push(f.name)}}
+ save();render();alert(`${nw} caso(s) novo(s), ${up} atualizado(s), ${ls} lâmina(s) com descrição importada.`+(er.length?`\nNão foi possível ler: ${er.join(', ')}`:'')+'\nRevise cada caso: o órgão das lâminas precisa ser preenchido (✏ órgão).')}
+
 render();
 </script></body></html>
